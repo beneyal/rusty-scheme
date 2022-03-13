@@ -126,14 +126,17 @@ fn parse_proc(i: &str) -> IResult<&str, ConstituentExpression> {
 
 fn parse_binding(i: &str) -> IResult<&str, (VariableDeclaration, Box<ConstituentExpression>)> {
     map(
-        delimited(
-            char('('),
-            separated_pair(
-                preceded(multispace0, parse_identifier),
-                multispace1,
-                parse_cexp,
+        preceded(
+            multispace0,
+            delimited(
+                char('('),
+                separated_pair(
+                    preceded(multispace0, parse_identifier),
+                    multispace1,
+                    parse_cexp,
+                ),
+                char(')'),
             ),
-            char(')'),
         ),
         |(vd, cexp)| (VariableDeclaration(vd.to_owned()), Box::from(cexp)),
     )(i)
