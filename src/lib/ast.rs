@@ -40,6 +40,7 @@ pub enum PrimitiveOperation {
     Sub,
     Mul,
     Div,
+    Equal,
     LessThan,
     LessThanOrEqual,
     GreaterThan,

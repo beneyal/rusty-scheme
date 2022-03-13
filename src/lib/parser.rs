@@ -1,22 +1,26 @@
 use crate::ast::*;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
-use nom::character::complete::{alpha1, char, multispace0, multispace1};
+use nom::character::complete::{char, multispace0, multispace1};
 use nom::combinator::{cut, map};
+use nom::error::{ErrorKind, ParseError};
 use nom::multi::{many0, many1};
 use nom::number::complete::double;
 use nom::sequence::{delimited, preceded, separated_pair, terminated, tuple};
-use nom::IResult;
+use nom::{AsChar, IResult, InputTakeAtPosition};
 
 pub fn parse_program(i: &str) -> IResult<&str, Program> {
-    let inner = map(
-        preceded(
-            terminated(tag("L3"), multispace1),
-            cut(many1(parse_expression)),
+    let inner = preceded(
+        multispace0,
+        map(
+            preceded(
+                terminated(tag("L3"), multispace1),
+                cut(many1(parse_expression)),
+            ),
+            |exps| Program { exps },
         ),
-        |exps| Program { exps },
     );
-    delimited(char('('), inner, char(')'))(i)
+    preceded(multispace0, delimited(char('('), inner, char(')')))(i)
 }
 
 fn parse_expression(i: &str) -> IResult<&str, Expression> {
@@ -33,7 +37,7 @@ fn parse_define(i: &str) -> IResult<&str, Expression> {
     let inner = map(
         preceded(
             terminated(tag("define"), multispace1),
-            cut(tuple((alpha1, parse_cexp))),
+            cut(tuple((parse_identifier, parse_cexp))),
         ),
         |(var, val)| {
             Expression::Define(Define {
@@ -99,7 +103,11 @@ fn parse_proc(i: &str) -> IResult<&str, ConstituentExpression> {
         preceded(
             terminated(tag("lambda"), multispace1),
             cut(tuple((
-                delimited(char('('), many0(preceded(multispace0, alpha1)), char(')')),
+                delimited(
+                    char('('),
+                    many0(preceded(multispace0, parse_identifier)),
+                    char(')'),
+                ),
                 many1(parse_cexp),
             ))),
         ),
@@ -120,7 +128,11 @@ fn parse_binding(i: &str) -> IResult<&str, (VariableDeclaration, Box<Constituent
     map(
         delimited(
             char('('),
-            separated_pair(preceded(multispace0, alpha1), multispace1, parse_cexp),
+            separated_pair(
+                preceded(multispace0, parse_identifier),
+                multispace1,
+                parse_cexp,
+            ),
             char(')'),
         ),
         |(vd, cexp)| (VariableDeclaration(vd.to_owned()), Box::from(cexp)),
@@ -160,7 +172,7 @@ fn parse_boolean(i: &str) -> IResult<&str, ConstituentExpression> {
 }
 
 fn parse_var(i: &str) -> IResult<&str, ConstituentExpression> {
-    map(alpha1, |v: &str| {
+    map(parse_identifier, |v: &str| {
         ConstituentExpression::VariableReference(VariableReference(v.to_owned()))
     })(i)
 }
@@ -176,6 +188,9 @@ fn parse_primop(i: &str) -> IResult<&str, ConstituentExpression> {
         map(tag("-"), |_| ConstituentExpression::PrimitiveOperation(Sub)),
         map(tag("*"), |_| ConstituentExpression::PrimitiveOperation(Mul)),
         map(tag("/"), |_| ConstituentExpression::PrimitiveOperation(Div)),
+        map(tag("="), |_| {
+            ConstituentExpression::PrimitiveOperation(Equal)
+        }),
         map(tag("<"), |_| {
             ConstituentExpression::PrimitiveOperation(LessThan)
         }),
@@ -236,4 +251,18 @@ fn parse_primop(i: &str) -> IResult<&str, ConstituentExpression> {
         parse_pair_op,
         parse_predicate,
     ))(i)
+}
+
+fn parse_identifier<T, E: ParseError<T>>(input: T) -> IResult<T, T, E>
+where
+    T: InputTakeAtPosition,
+    <T as InputTakeAtPosition>::Item: AsChar,
+{
+    input.split_at_position1_complete(
+        |item| {
+            let c = item.as_char();
+            c != '-' && c != '?' && c != '!' && !c.is_alphanum()
+        },
+        ErrorKind::AlphaNumeric,
+    )
 }

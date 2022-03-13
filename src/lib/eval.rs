@@ -3,7 +3,7 @@ use crate::env::Environment;
 use crate::value::{Closure, Value};
 use crate::{primitives, substitution, SchemeError};
 
-pub fn eval_program(program: Program) -> Result<Value, SchemeError> {
+pub fn eval_program(program: &Program) -> Result<Value, SchemeError> {
     eval_sequence(program.exps.as_slice(), &Environment::Empty)
 }
 
@@ -34,13 +34,10 @@ pub(crate) fn is_true(v: &Value) -> bool {
 }
 
 fn eval_if(ifexp: &If, env: &Environment) -> Result<Value, SchemeError> {
-    let cond = applicative_eval(&ifexp.cond, env)?;
-    let then = applicative_eval(&ifexp.then, env)?;
-    let alt = applicative_eval(&ifexp.alt, env)?;
-    if is_true(&cond) {
-        Ok(then)
+    if is_true(&applicative_eval(&ifexp.cond, env)?) {
+        applicative_eval(&ifexp.then, env)
     } else {
-        Ok(alt)
+        applicative_eval(&ifexp.alt, env)
     }
 }
 
@@ -99,14 +96,11 @@ fn apply_closure(proc: &Closure, args: &[Value], env: &Environment) -> Result<Va
     let vars: Vec<_> = proc.params.iter().map(|vd| vd.0.to_owned()).collect();
     let body = substitution::rename(&proc.body);
     let lit_args: Vec<_> = args.iter().map(substitution::value_to_literal).collect();
-    eval_sequence(
-        substitution::substitute(body.as_slice(), vars.as_slice(), lit_args.as_slice())
-            .iter()
-            .map(|e| Expression::ConstituentExpression(e.clone()))
-            .collect::<Vec<_>>()
-            .as_slice(),
-        env,
-    )
+    let exps = substitution::substitute(body.as_slice(), vars.as_slice(), lit_args.as_slice())
+        .iter()
+        .map(|e| Expression::ConstituentExpression(e.clone()))
+        .collect::<Vec<_>>();
+    eval_sequence(exps.as_slice(), env)
 }
 
 fn eval_sequence(exps: &[Expression], env: &Environment) -> Result<Value, SchemeError> {

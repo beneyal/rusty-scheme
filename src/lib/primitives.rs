@@ -10,6 +10,7 @@ pub fn apply_primitive(primop: &PrimitiveOperation, args: &[Value]) -> Result<Va
         PrimitiveOperation::Sub => sub(args),
         PrimitiveOperation::Mul => mul(args),
         PrimitiveOperation::Div => div(args),
+        PrimitiveOperation::Equal => compare(args, |x, y| (x - y).abs() < f64::EPSILON),
         PrimitiveOperation::LessThan => compare(args, |x, y| x < y),
         PrimitiveOperation::LessThanOrEqual => compare(args, |x, y| x <= y),
         PrimitiveOperation::GreaterThan => compare(args, |x, y| x > y),
