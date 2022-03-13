@@ -1,7 +1,7 @@
 use crate::value::Value;
 use crate::SchemeError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Environment {
     Empty,
     NonEmpty(String, Value, Box<Environment>),

@@ -1,47 +1,70 @@
-#[derive(Debug)]
+use crate::value::SExpression;
+
+#[derive(Debug, Clone)]
 pub struct Application {
     pub operator: Box<ConstituentExpression>,
-    pub operands: Vec<ConstituentExpression>,
+    pub operands: Vec<Box<ConstituentExpression>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct If {
     pub cond: Box<ConstituentExpression>,
     pub then: Box<ConstituentExpression>,
     pub alt: Box<ConstituentExpression>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Procedure {
     pub args: Vec<VariableDeclaration>,
-    pub body: Vec<ConstituentExpression>,
+    pub body: Vec<Box<ConstituentExpression>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Let {
     pub bindings: Vec<(VariableDeclaration, Box<ConstituentExpression>)>,
-    pub body: Vec<ConstituentExpression>,
+    pub body: Vec<Box<ConstituentExpression>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Number(pub f64);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Boolean(pub bool);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Str(pub String);
 
-#[derive(Debug)]
-pub struct PrimitiveOperation(pub String);
+#[derive(Debug, Clone)]
+pub enum PrimitiveOperation {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    LessThan,
+    LessThanOrEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
+    Not,
+    And,
+    Or,
+    IsEq,
+    Cons,
+    Car,
+    Cdr,
+    List,
+    IsPair,
+    IsNumber,
+    IsBoolean,
+    IsSymbol,
+}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VariableReference(pub String);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VariableDeclaration(pub String);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ConstituentExpression {
     Applic(Application),
     If(If),
@@ -49,18 +72,24 @@ pub enum ConstituentExpression {
     Let(Let),
     Number(Number),
     Boolean(Boolean),
-    Str(Str),
+    Literal(SExpression),
     PrimitiveOperation(PrimitiveOperation),
     VariableReference(VariableReference),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub struct Define {
+    pub var: String,
+    pub val: ConstituentExpression,
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression {
-    Define { var: String, val: String },
+    Define(Define),
     ConstituentExpression(ConstituentExpression),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Program {
-    exps: Vec<Expression>,
+    pub exps: Vec<Expression>,
 }
